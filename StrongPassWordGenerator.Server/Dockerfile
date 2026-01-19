@@ -1,31 +1,30 @@
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /src
+# Stage 1: Build Frontend
+FROM node:20-alpine AS frontend-build
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ .
+# Set API URL to relative path for production
+ENV VITE_API_URL=""
+RUN npm run build
 
-# Copy csproj and restore dependencies
+# Stage 2: Build Backend
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
+WORKDIR /src
 COPY StrongPassWordGenerator.Server/StrongPassWordGenerator.Server.csproj StrongPassWordGenerator.Server/
 RUN dotnet restore StrongPassWordGenerator.Server/StrongPassWordGenerator.Server.csproj
-
-# Copy everything else and build
 COPY StrongPassWordGenerator.Server/. StrongPassWordGenerator.Server/
 WORKDIR /src/StrongPassWordGenerator.Server
 RUN dotnet build -c Release -o /app/build
 
-# Publish stage
-FROM build AS publish
+# Stage 3: Publish
+FROM backend-build AS publish
 RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 
-# Runtime stage
+# Stage 4: Final
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
-
-# Copy published app
 COPY --from=publish /app/publish .
-
-# Set environment variables
-ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
-
+COPY --from=frontend-build /app/dist ./wwwroot
 ENTRYPOINT ["dotnet", "StrongPassWordGenerator.Server.dll"]

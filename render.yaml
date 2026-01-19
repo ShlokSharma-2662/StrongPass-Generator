@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: strongpass-generator
+    env: docker
+    dockerContext: .
+    dockerfilePath: StrongPassWordGenerator.Server/Dockerfile
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+    healthCheckPath: /api/password/health

@@ -45,8 +45,13 @@ app.MapScalarApiReference();
 
 app.UseCors("AllowFrontend");
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapControllers();
 app.MapDefaultEndpoints();
+
+app.MapFallbackToFile("index.html");
 
 app.UseFileServer();
 
