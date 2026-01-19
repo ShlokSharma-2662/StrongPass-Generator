@@ -287,6 +287,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 👤 Author
 
+**Shlok Sharma**
+
 Built with ❤️ using C# .NET 10 and React TypeScript
 
 ---

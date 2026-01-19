@@ -130,6 +130,8 @@ function App() {
         >
           <Typography variant="body2" color="text.secondary">
             Built with C# .NET 10 & React TypeScript | All passwords are generated locally
+            <br />
+            Created by <strong>Shlok Sharma</strong>
           </Typography>
         </Box>
       </Box>
