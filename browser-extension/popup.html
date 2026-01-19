@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StrongPass Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>StrongPass</h1>
+        </div>
+
+        <div class="result-container">
+            <div class="password-display" id="passwordDisplay">Generating...</div>
+            <button id="copyBtn" class="icon-btn" title="Copy">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Length: <span id="lengthValue">16</span></label>
+                <input type="range" id="lengthSlider" min="8" max="64" value="16">
+            </div>
+
+            <div class="options-grid">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="uppercase" checked>
+                    <span class="checkmark"></span>
+                    ABC
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="lowercase" checked>
+                    <span class="checkmark"></span>
+                    abc
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="numbers" checked>
+                    <span class="checkmark"></span>
+                    123
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="symbols" checked>
+                    <span class="checkmark"></span>
+                    #@!
+                </label>
+            </div>
+        </div>
+
+        <button id="generateBtn" class="primary-btn">Generate New</button>
+
+        <div class="footer">
+            <a href="http://localhost:3000" target="_blank" id="openAppBtn">Open Full App</a>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
