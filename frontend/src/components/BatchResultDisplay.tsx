@@ -9,29 +9,37 @@ import {
     Tooltip,
     Alert,
     Snackbar,
+    Button,
 } from '@mui/material';
 import { ContentCopy, CheckCircle } from '@mui/icons-material';
 import type { PasswordResponse } from '../types';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface BatchResultDisplayProps {
     results: PasswordResponse[];
 }
 
 export default function BatchResultDisplay({ results }: BatchResultDisplayProps) {
-    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const resultsWithIds = useMemo(() => {
+        return results.map(item => ({
+            ...item,
+            id: crypto.randomUUID()
+        }));
+    }, [results]);
 
-    const handleCopy = (password: string, index: number) => {
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    const handleCopy = (password: string, id: string) => {
         navigator.clipboard.writeText(password);
-        setCopiedIndex(index);
-        setTimeout(() => setCopiedIndex(null), 2000);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
     };
 
     const handleCopyAll = () => {
         const allPasswords = results.map(r => r.password).join('\n');
         navigator.clipboard.writeText(allPasswords);
-        setCopiedIndex(-1); // -1 for all
-        setTimeout(() => setCopiedIndex(null), 2000);
+        setCopiedId('ALL');
+        setTimeout(() => setCopiedId(null), 2000);
     };
 
     return (
@@ -46,13 +54,13 @@ export default function BatchResultDisplay({ results }: BatchResultDisplayProps)
             </Box>
 
             <List dense sx={{ maxHeight: 400, overflow: 'auto' }}>
-                {results.map((item, index) => (
+                {resultsWithIds.map((item) => (
                     <ListItem
-                        key={index}
+                        key={item.id}
                         secondaryAction={
                             <Tooltip title="Copy">
-                                <IconButton edge="end" size="small" onClick={() => handleCopy(item.password, index)}>
-                                    {copiedIndex === index ? <CheckCircle color="success" fontSize="small" /> : <ContentCopy fontSize="small" />}
+                                <IconButton edge="end" size="small" onClick={() => handleCopy(item.password, item.id)}>
+                                    {copiedId === item.id ? <CheckCircle color="success" fontSize="small" /> : <ContentCopy fontSize="small" />}
                                 </IconButton>
                             </Tooltip>
                         }
@@ -83,17 +91,15 @@ export default function BatchResultDisplay({ results }: BatchResultDisplayProps)
             </List>
 
             <Snackbar
-                open={copiedIndex !== null}
+                open={copiedId !== null}
                 autoHideDuration={2000}
-                onClose={() => setCopiedIndex(null)}
+                onClose={() => setCopiedId(null)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 <Alert severity="success" variant="filled">
-                    {copiedIndex === -1 ? 'All passwords copied!' : 'Password copied!'}
+                    {copiedId === 'ALL' ? 'All passwords copied!' : 'Password copied!'}
                 </Alert>
             </Snackbar>
         </Paper>
     );
 }
-
-import { Button } from '@mui/material';
