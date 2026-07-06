@@ -1,4 +1,4 @@
-import { Box, LinearProgress, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 interface StrengthMeterProps {
     strength: number;
@@ -39,16 +39,36 @@ export default function StrengthMeter({
                 </Typography>
             </Box>
 
-            <LinearProgress
-                variant="determinate"
-                value={strength}
-                color={getColor()}
-                sx={{
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                }}
-            />
+            <Box sx={{ display: 'flex', gap: 1, height: 8, mt: 1, mb: 2 }}>
+                {[1, 2, 3, 4].map((step) => {
+                    let bg = 'rgba(255, 255, 255, 0.1)';
+                    const colorMap: Record<string, string> = {
+                        error: '#f44336',
+                        warning: '#ff9800',
+                        info: '#00bcd4',
+                        success: '#4caf50'
+                    };
+                    
+                    const isActive = strength > (step - 1) * 25 || (step === 1 && strength > 0);
+                    if (isActive) {
+                        bg = colorMap[getColor()];
+                    }
+
+                    return (
+                        <Box
+                            key={step}
+                            sx={{
+                                flex: 1,
+                                borderRadius: 4,
+                                backgroundColor: bg,
+                                transition: 'all 0.4s ease',
+                                transitionDelay: isActive ? `${step * 0.08}s` : '0s',
+                                boxShadow: isActive ? `0 0 10px ${bg}80` : 'none',
+                            }}
+                        />
+                    );
+                })}
+            </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                 <Typography variant="caption" color="text.secondary">

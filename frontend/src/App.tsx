@@ -27,11 +27,11 @@ function App() {
       },
       background: {
         default: mode === 'dark' ? '#0f0c29' : '#f5f7fa',
-        paper: mode === 'dark' ? '#1a1a2e' : '#ffffff',
+        paper: mode === 'dark' ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.7)',
       },
     },
     typography: {
-      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontFamily: '"Outfit", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
       h4: {
         fontWeight: 700,
       },
@@ -40,10 +40,22 @@ function App() {
       borderRadius: 8,
     },
     components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundImage: 'none',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(255, 255, 255, 0.3)',
+            boxShadow: mode === 'dark' ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)' : '0 8px 32px 0 rgba(31, 38, 135, 0.1)',
+          },
+        },
+      },
       MuiButton: {
         styleOverrides: {
           root: {
             textTransform: 'none',
+            fontWeight: 600,
           },
         },
       },
@@ -61,14 +73,17 @@ function App() {
         sx={{
           minHeight: '100vh',
           background: mode === 'dark'
-            ? 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)'
-            : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            ? 'linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #0f0c29)'
+            : 'linear-gradient(-45deg, #f5f7fa, #c3cfe2, #e0eafc, #f5f7fa)',
+          backgroundSize: '400% 400%',
+          animation: 'gradientBG 15s ease infinite',
           backgroundAttachment: 'fixed',
           transition: 'background 0.3s ease',
         }}
       >
         {/* Header */}
         <Box
+          className="fade-in-up delay-1"
           sx={{
             pt: 4,
             pb: 2,
@@ -119,10 +134,13 @@ function App() {
         </Box>
 
         {/* Main Content */}
-        <PasswordGenerator />
+        <Box className="fade-in-up delay-2">
+          <PasswordGenerator />
+        </Box>
 
         {/* Footer */}
         <Box
+          className="fade-in-up delay-3"
           sx={{
             py: 4,
             textAlign: 'center',
