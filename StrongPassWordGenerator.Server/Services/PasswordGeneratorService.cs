@@ -62,18 +62,16 @@ public class PasswordGeneratorService : IPasswordGeneratorService
         }
         else if (!string.IsNullOrEmpty(request.CustomCharacterSet))
         {
-            charSet = request.CustomCharacterSet;
-            if (string.IsNullOrEmpty(charSet))
-            {
-                throw new ArgumentException("Custom character set cannot be empty");
-            }
+            // Duplicates would bias generation toward repeated characters and inflate entropy
+            charSet = new string(request.CustomCharacterSet.Distinct().ToArray());
             password = GenerateSecurePassword(charSet, request.Length);
             entropy = CalculateEntropy(request.Length, charSet.Length);
         }
         else
         {
-            // Build character set based on options
-            charSet = BuildCharacterSet(request);
+            // Build one pool per selected character class so each class is guaranteed
+            var pools = BuildCharacterPools(request);
+            charSet = string.Concat(pools);
 
             if (string.IsNullOrEmpty(charSet))
             {
@@ -81,7 +79,7 @@ public class PasswordGeneratorService : IPasswordGeneratorService
             }
 
             // Generate password using cryptographically secure random
-            password = GenerateSecurePassword(charSet, request.Length);
+            password = GenerateSecurePassword(charSet, request.Length, pools);
             entropy = CalculateEntropy(request.Length, charSet.Length);
         }
 
@@ -156,44 +154,31 @@ public class PasswordGeneratorService : IPasswordGeneratorService
         }
 
         var words = new List<string>();
-        var randomBytes = new byte[4];
-        
-        using (var rng = RandomNumberGenerator.Create())
+
+        for (int i = 0; i < request.WordCount; i++)
         {
-            for (int i = 0; i < request.WordCount; i++)
+            string word = _wordList[RandomNumberGenerator.GetInt32(_wordList.Length)];
+
+            if (request.Capitalize)
             {
-                rng.GetBytes(randomBytes);
-                uint randomValue = BitConverter.ToUInt32(randomBytes, 0);
-                string word = _wordList[randomValue % _wordList.Length];
-                
-                if (request.Capitalize)
-                {
-                    word = char.ToUpper(word[0]) + word.Substring(1);
-                }
-                
-                words.Add(word);
+                word = char.ToUpper(word[0]) + word.Substring(1);
             }
+
+            words.Add(word);
         }
 
         if (request.IncludeNumber)
         {
-            // Add a random number to a random word or at the end
-            // Let's append to the end for simplicity
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomBytes);
-                int number = (int)(BitConverter.ToUInt32(randomBytes, 0) % 1000); // 0-999
-                words[words.Count - 1] += number.ToString();
-            }
+            words[words.Count - 1] += RandomNumberGenerator.GetInt32(1000).ToString();
         }
 
         string passphrase = string.Join(request.Separator, words);
-        
+
         // Calculate entropy for passphrase
         // Entropy = num_words * log2(word_list_size)
+        // Capitalization is deterministic (every word), so it adds no entropy
         double entropy = request.WordCount * Math.Log2(_wordList.Length);
         if (request.IncludeNumber) entropy += Math.Log2(1000); // Add entropy for number
-        if (request.Capitalize) entropy += request.WordCount; // 1 bit per capitalized word (roughly)
 
         // Normalize strength (passphrases are usually strong)
         int strength = (int)Math.Min(100, (entropy / 80.0) * 100); // 80 bits is good for passphrase
@@ -223,38 +208,45 @@ public class PasswordGeneratorService : IPasswordGeneratorService
     }
 
     /// <summary>
-    /// Builds the character set based on user options
+    /// Builds one character pool per selected class, with exclusions applied
     /// </summary>
-    private string BuildCharacterSet(PasswordGenerationRequest request)
+    private List<string> BuildCharacterPools(PasswordGenerationRequest request)
     {
-        StringBuilder charSet = new StringBuilder();
+        var pools = new List<string>();
 
         if (request.IncludeUppercase)
-            charSet.Append(UppercaseChars);
+            pools.Add(UppercaseChars);
 
         if (request.IncludeLowercase)
-            charSet.Append(LowercaseChars);
+            pools.Add(LowercaseChars);
 
         if (request.IncludeNumbers)
-            charSet.Append(NumberChars);
+            pools.Add(NumberChars);
 
         if (request.IncludeSymbols)
-            charSet.Append(SymbolChars);
+            pools.Add(SymbolChars);
 
-        string result = charSet.ToString();
-
-        // Apply exclusions
-        if (request.ExcludeSimilar)
+        for (int i = 0; i < pools.Count; i++)
         {
-            result = ExcludeCharacters(result, SimilarChars);
+            string pool = pools[i];
+
+            if (request.ExcludeSimilar)
+            {
+                pool = ExcludeCharacters(pool, SimilarChars);
+            }
+
+            if (request.ExcludeAmbiguous)
+            {
+                pool = ExcludeCharacters(pool, AmbiguousChars);
+            }
+
+            pools[i] = pool;
         }
 
-        if (request.ExcludeAmbiguous)
-        {
-            result = ExcludeCharacters(result, AmbiguousChars);
-        }
+        // A class emptied by exclusions can't be guaranteed
+        pools.RemoveAll(string.IsNullOrEmpty);
 
-        return result;
+        return pools;
     }
 
     /// <summary>
@@ -266,23 +258,33 @@ public class PasswordGeneratorService : IPasswordGeneratorService
     }
 
     /// <summary>
-    /// Generates a password using cryptographically secure random
+    /// Generates a password using cryptographically secure random.
+    /// When pools are provided, at least one character from each pool is guaranteed.
     /// </summary>
-    private string GenerateSecurePassword(string charSet, int length)
+    private string GenerateSecurePassword(string charSet, int length, IReadOnlyList<string>? requiredPools = null)
     {
         char[] password = new char[length];
-        byte[] randomBytes = new byte[length * 4]; // 4 bytes per character for better distribution
+        int index = 0;
 
-        using (var rng = RandomNumberGenerator.Create())
+        if (requiredPools != null)
         {
-            rng.GetBytes(randomBytes);
+            foreach (string pool in requiredPools)
+            {
+                if (index >= length) break;
+                password[index++] = pool[RandomNumberGenerator.GetInt32(pool.Length)];
+            }
         }
 
-        for (int i = 0; i < length; i++)
+        for (; index < length; index++)
         {
-            // Use 4 bytes to generate a more uniform distribution
-            uint randomValue = BitConverter.ToUInt32(randomBytes, i * 4);
-            password[i] = charSet[(int)(randomValue % (uint)charSet.Length)];
+            password[index] = charSet[RandomNumberGenerator.GetInt32(charSet.Length)];
+        }
+
+        // Fisher–Yates shuffle so guaranteed characters aren't at predictable positions
+        for (int i = length - 1; i > 0; i--)
+        {
+            int j = RandomNumberGenerator.GetInt32(i + 1);
+            (password[i], password[j]) = (password[j], password[i]);
         }
 
         return new string(password);
@@ -355,37 +357,34 @@ public class PasswordGeneratorService : IPasswordGeneratorService
         
         return "Beyond comprehension";
     }
+    private const string AllChars = UppercaseChars + LowercaseChars + NumberChars + SymbolChars;
+
     private string GenerateFromPattern(string pattern)
     {
         var password = new StringBuilder();
-        var randomBytes = new byte[4];
-        
-        using (var rng = RandomNumberGenerator.Create())
-        {
-            foreach (char c in pattern)
-            {
-                string? pool = c switch
-                {
-                    'A' => UppercaseChars,
-                    'a' => LowercaseChars,
-                    'd' => NumberChars,
-                    's' => SymbolChars,
-                    '?' => UppercaseChars + LowercaseChars + NumberChars + SymbolChars,
-                    _ => null
-                };
 
-                if (pool != null)
-                {
-                    rng.GetBytes(randomBytes);
-                    uint randomValue = BitConverter.ToUInt32(randomBytes, 0);
-                    password.Append(pool[(int)(randomValue % (uint)pool.Length)]);
-                }
-                else
-                {
-                    password.Append(c);
-                }
+        foreach (char c in pattern)
+        {
+            string? pool = c switch
+            {
+                'A' => UppercaseChars,
+                'a' => LowercaseChars,
+                'd' => NumberChars,
+                's' => SymbolChars,
+                '?' => AllChars,
+                _ => null
+            };
+
+            if (pool != null)
+            {
+                password.Append(pool[RandomNumberGenerator.GetInt32(pool.Length)]);
+            }
+            else
+            {
+                password.Append(c);
             }
         }
+
         return password.ToString();
     }
 
@@ -396,11 +395,11 @@ public class PasswordGeneratorService : IPasswordGeneratorService
         {
             entropy += c switch
             {
-                'A' => Math.Log2(26),
-                'a' => Math.Log2(26),
-                'd' => Math.Log2(10),
-                's' => Math.Log2(32), // Approx symbol count
-                '?' => Math.Log2(94), // Total printable ascii
+                'A' => Math.Log2(UppercaseChars.Length),
+                'a' => Math.Log2(LowercaseChars.Length),
+                'd' => Math.Log2(NumberChars.Length),
+                's' => Math.Log2(SymbolChars.Length),
+                '?' => Math.Log2(AllChars.Length),
                 _ => 0
             };
         }

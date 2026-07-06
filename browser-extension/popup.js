@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     openAppBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        chrome.tabs.create({ url: 'http://localhost:3000' });
+        chrome.tabs.create({ url: 'https://strongpass-generator.onrender.com/' });
     });
 
     // Functions
@@ -80,23 +80,43 @@ document.addEventListener('DOMContentLoaded', () => {
         options.symbol = symbolsCb.checked;
     }
 
+    // Unbiased random integer in [0, max) via rejection sampling
+    function secureRandomInt(max) {
+        const limit = Math.floor(0x100000000 / max) * max;
+        const array = new Uint32Array(1);
+        do {
+            crypto.getRandomValues(array);
+        } while (array[0] >= limit);
+        return array[0] % max;
+    }
+
     function generatePassword() {
-        let charSet = '';
-        if (options.upper) charSet += CHARS.upper;
-        if (options.lower) charSet += CHARS.lower;
-        if (options.number) charSet += CHARS.number;
-        if (options.symbol) charSet += CHARS.symbol;
+        const pools = [];
+        if (options.upper) pools.push(CHARS.upper);
+        if (options.lower) pools.push(CHARS.lower);
+        if (options.number) pools.push(CHARS.number);
+        if (options.symbol) pools.push(CHARS.symbol);
 
-        if (charSet === '') return;
+        if (pools.length === 0) return;
 
-        let password = '';
-        const array = new Uint32Array(options.length);
-        crypto.getRandomValues(array);
+        const charSet = pools.join('');
+        const password = [];
 
-        for (let i = 0; i < options.length; i++) {
-            password += charSet[array[i] % charSet.length];
+        // Guarantee at least one character from each selected class
+        for (const pool of pools) {
+            if (password.length >= options.length) break;
+            password.push(pool[secureRandomInt(pool.length)]);
+        }
+        while (password.length < options.length) {
+            password.push(charSet[secureRandomInt(charSet.length)]);
         }
 
-        passwordDisplay.textContent = password;
+        // Fisher-Yates shuffle so guaranteed characters aren't at predictable positions
+        for (let i = password.length - 1; i > 0; i--) {
+            const j = secureRandomInt(i + 1);
+            [password[i], password[j]] = [password[j], password[i]];
+        }
+
+        passwordDisplay.textContent = password.join('');
     }
 });

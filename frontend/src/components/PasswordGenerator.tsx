@@ -214,9 +214,11 @@ export default function PasswordGenerator() {
                                 fontWeight: 600,
                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                                transition: 'all 0.2s ease',
                                 '&:hover': {
                                     background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
                                     boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)',
+                                    transform: 'translateY(-2px)',
                                 },
                             }}
                         >
@@ -256,9 +258,11 @@ export default function PasswordGenerator() {
                                 fontWeight: 600,
                                 background: 'linear-gradient(135deg, #00b09b 0%, #96c93d 100%)',
                                 boxShadow: '0 4px 15px rgba(0, 176, 155, 0.4)',
+                                transition: 'all 0.2s ease',
                                 '&:hover': {
                                     background: 'linear-gradient(135deg, #96c93d 0%, #00b09b 100%)',
                                     boxShadow: '0 6px 20px rgba(0, 176, 155, 0.6)',
+                                    transform: 'translateY(-2px)',
                                 },
                             }}
                         >

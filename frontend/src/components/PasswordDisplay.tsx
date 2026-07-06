@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Box,
     Paper,
@@ -25,6 +25,36 @@ interface PasswordDisplayProps {
 export default function PasswordDisplay({ password }: PasswordDisplayProps) {
     const [showPassword, setShowPassword] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [displayPassword, setDisplayPassword] = useState(password);
+    const [isAnimating, setIsAnimating] = useState(false);
+
+    useEffect(() => {
+        if (!password) {
+            setDisplayPassword('');
+            return;
+        }
+
+        setIsAnimating(true);
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
+        let iterations = 0;
+        
+        const interval = setInterval(() => {
+            setDisplayPassword(
+                Array.from({ length: password.length })
+                    .map(() => chars[Math.floor(Math.random() * chars.length)])
+                    .join('')
+            );
+            
+            iterations++;
+            if (iterations > 10) {
+                clearInterval(interval);
+                setDisplayPassword(password);
+                setIsAnimating(false);
+            }
+        }, 30);
+
+        return () => clearInterval(interval);
+    }, [password]);
 
     const handleCopy = async () => {
         try {
@@ -46,6 +76,7 @@ export default function PasswordDisplay({ password }: PasswordDisplayProps) {
     return (
         <>
             <Paper
+                className={copied ? 'copy-success' : ''}
                 elevation={3}
                 sx={{
                     p: 3,
@@ -54,6 +85,7 @@ export default function PasswordDisplay({ password }: PasswordDisplayProps) {
                     borderRadius: 2,
                     position: 'relative',
                     overflow: 'hidden',
+                    transition: 'all 0.3s ease',
                 }}
             >
                 <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mb: 1 }}>
@@ -77,9 +109,11 @@ export default function PasswordDisplay({ password }: PasswordDisplayProps) {
                             wordBreak: 'break-all',
                             letterSpacing: showPassword ? 1 : 0,
                             fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' },
+                            opacity: isAnimating ? 0.7 : 1,
+                            transition: 'opacity 0.2s ease',
                         }}
                     >
-                        {password ? (showPassword ? password : '•'.repeat(password.length)) : 'Click Generate to create a password'}
+                        {password ? (showPassword ? displayPassword : '•'.repeat(password.length)) : 'Click Generate to create a password'}
                     </Typography>
 
                     {password && (
